@@ -159,6 +159,31 @@ EOF
 EOF
     fi
 done
+
+# launcher service
+cat <<EOF
+  - wait:
+    continue_on_failure: true
+
+  - label: ":boat: Launcher service tests"
+    command: |
+      echo '+++ :chicken: Running tests with the launcher service'
+      git clone git@github.com:eosio/eos -b launcher_service
+      apt update && apt -y install python3 python3-pip python3.7
+      python3.7 -m pip install requests
+
+      # Run the launcer service in the background.
+      buildkite-agent artifact download build.tar.gz . --step 'Ubuntu 18.04 - Build' && tar xf build.tar.gz
+      ./build/programs/launcher-service/launcher-service &
+
+      pushd eos/lstests/
+      python3.7 schedule_test.py --mono --info
+      popd
+    agents:
+      queue: "$BUILDKITE_BUILD_AGENT_QUEUE"
+    timeout: ${TIMEOUT:-600}
+EOF
+
 echo
 echo '  - wait'
 echo ''
